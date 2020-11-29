@@ -2,12 +2,32 @@ import requests
 from bs4 import BeautifulSoup
 from common import *
 
-response = requests.get("http://www.nmc.cn/publish/forecast/ABJ/beijing.html")
-response.encoding="utf-8"
-content  = response.text
+
+def get_content():
+    response = requests.get("http://www.nmc.cn/publish/forecast/ABJ/beijing.html")
+    response.encoding="utf-8"
+    content  = response.text
+    return content
+
+
+def parse_weathers_hours(content):
+    soup = BeautifulSoup(content, "html.parser")
+    divs = soup.select(".hour3")[:3]
+    weathers =[]
+    for div in divs:
+        entry = {}
+        items = list(div.children)
+        date = items[0].string.strip()
+        rain = False if items[2].string.strip()=="-" else True
+        temp = items[3].string.strip()
+        entry['date'] = date
+        entry['temp'] = temp
+        entry['rain'] = rain
+        weathers.append(entry)
+    return weathers
 
     
-def parse_weathers(content):
+def parse_weathers_days(content):
     soup = BeautifulSoup(content, "html.parser")
     items = soup.find_all(class_="weatherWrap")[:]
     dates = soup.select(".weatherWrap .date")[:]
@@ -31,18 +51,5 @@ def parse_weathers(content):
         weathers.append(entry)
     return weathers
     
-
-weathers = parse_weathers(content)
-weather_str=""
-for weather in weathers:
-    date = weather['date']
-    temp1 = weather.get('temp1',"未知").strip()
-    temp2 = weather.get('temp2',"未知").strip()
-    value = "日期：{0}  白天气温：{1}  夜晚气温：{2}\n ".format (date,temp1,temp2)
-    weather_str+=value
-
-
-send_emali(weather_str,"feipeixuan@163.com")
-send_emali(weather_str,"15210217527@163.com")
     
     
