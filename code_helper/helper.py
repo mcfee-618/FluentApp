@@ -5,8 +5,9 @@ import pygraphviz as pgv
 import tempfile
 from shutil import copyfile
 
+
 @click.command()
-@click.option('--input',  help='call stack file')
+@click.option('--input', help='call stack file')
 @click.option('--output', help='call stack graph photo')
 def analyze(input, output):
     """generate call stack photo"""
@@ -22,7 +23,7 @@ def build_callstack() -> list:
     while frame:
         frame = frame.f_back
         depth += 1
-    frame = inspect.currentframe()
+    frame = inspect.currentframe().f_back
     # build call stack
     while frame:
         code = frame.f_code
@@ -33,6 +34,7 @@ def build_callstack() -> list:
         callstack.append(call_info)
         depth -= 1
         frame = frame.f_back
+    callstack = sorted(callstack, key=lambda call_info: call_info.num, reverse=False)
     return callstack
 
 
@@ -45,7 +47,7 @@ def output_callstack_photo(callstack, path):
         if call_info.file not in subgraph_set:
             subgraph_set[call_info.file] = G.add_subgraph(
                 name='cluster' + call_info.file,
-                label=call_info
+                label=call_info.file
             )
         subgraph = subgraph_set[call_info.file]
         subgraph.add_node(
@@ -55,6 +57,7 @@ def output_callstack_photo(callstack, path):
 
     for index, start in enumerate(callstack):
         if index + 1 < len(callstack):
+            print(start.file)
             start_filename = start.file
             start_line = start.line
             start_function = start.method
@@ -87,7 +90,7 @@ def output_callstack_photo(callstack, path):
 
         fd, temp = tempfile.mkstemp('.png')
         G.draw(temp, prog='dot')
-        G.close()
+        # G.close()
         copyfile(temp, path)
 
 
@@ -121,6 +124,6 @@ class CallInfo:
         else:
             return -1
 
+
 if __name__ == "__main__":
     analyze()
-
